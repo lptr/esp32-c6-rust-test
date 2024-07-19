@@ -83,16 +83,22 @@ async fn connect_wps(wifi: &mut AsyncWifi<EspWifi<'static>>) -> anyhow::Result<(
     }
 
     match wifi.get_configuration()? {
-        Configuration::Client(config) => {
+        Configuration::Client(config) | Configuration::Mixed(config, _) => {
             info!("Successfully connected to {} using WPS", config.ssid)
         }
         _ => anyhow::bail!("Not in station mode"),
     };
 
-    wifi.connect().await?;
+    if let Err(e) = wifi.connect().await {
+        println!("Error while connecting: {:?}", e);
+        return Err(anyhow::anyhow!(e));
+    }
     info!("Wifi connected");
 
-    wifi.wait_netif_up().await?;
+    if let Err(e) = wifi.wait_netif_up().await {
+        println!("Error while waiting for netif: {:?}", e);
+        return Err(anyhow::anyhow!(e));
+    }
     info!("Wifi netif up");
 
     Ok(())
