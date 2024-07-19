@@ -90,16 +90,30 @@ async fn connect_wps(wifi: &mut AsyncWifi<EspWifi<'static>>) -> anyhow::Result<(
     };
 
     if let Err(e) = wifi.connect().await {
-        println!("Error while connecting: {:?}", e);
+        info!("Error while connecting: {:?}", e);
         return Err(anyhow::anyhow!(e));
     }
     info!("Wifi connected");
 
     if let Err(e) = wifi.wait_netif_up().await {
-        println!("Error while waiting for netif: {:?}", e);
+        info!("Error while waiting for netif: {:?}", e);
         return Err(anyhow::anyhow!(e));
     }
     info!("Wifi netif up");
+
+    match wifi.wifi().sta_netif().get_ip_info() {
+        Ok(ip_info) => {
+            info!("Wifi DHCP info: {:?}", ip_info);
+        }
+        Err(e) => {
+            info!("Error while getting DHCP info: {:?}", e);
+            return Err(anyhow::anyhow!(e));
+        }
+    }
+
+    info!("Shutting down in 5s...");
+
+    std::thread::sleep(core::time::Duration::from_secs(5));
 
     Ok(())
 }
